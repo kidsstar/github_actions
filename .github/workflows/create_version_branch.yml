@@ -1,0 +1,78 @@
+name: 'バージョンブランチの作成'
+on:
+  workflow_call:
+    inputs:
+      create_pull_request:
+        default: true
+        required: false
+        type: boolean
+      include_project_settings:
+        default: true
+        required: false
+        type: boolean
+      version:
+        required: true
+        type: string
+    secrets:
+      pat_create_pull_request:
+        required: true
+jobs:
+  create_version_branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup git
+        run: |
+          git config --global user.name "system@kidsstar.co.jp"
+          git config --global user.email "kidsstar-system@users.noreply.github.com"
+      - uses: actions/checkout@v2 # 作業元のレポジトリを取得する
+      - name: Fetch branches, and tags
+        run: git fetch --tags
+      - uses: actions/checkout@v2
+        with:
+          repository: kidsstar/github_actions
+          ref: main
+          path: .github/actions/shared/
+      - name: Get version
+        run: .github/actions/shared/.github/workflows/get_version.sh
+        env:
+          BASE: ${{ inputs.version }}
+        id: get_version
+        shell: bash
+      - name: Get branch name
+        run: echo "::set-output name=BRANCH_NAME::$VERSION_WITH_V"
+        env:
+          VERSION_WITH_V: ${{ steps.get_version.outputs.VERSION_WITH_V }}
+        id: get_branch_name
+        shell: bash
+      - name: Create branch
+        run: |
+          if [[ $(git branch -a | grep "remotes/origin/$BRANCH_NAME" | wc -l) -gt 0 ]]; then
+            echo "ERROR: すでにブランチ $BRANCH_NAME が存在します"
+            exit 1
+          fi
+          git checkout -b "$BRANCH_NAME"
+        env:
+          BRANCH_NAME: ${{ steps.get_branch_name.outputs.BRANCH_NAME }}
+        shell: bash
+      - name: Bump up project version
+        run: .github/actions/shared/.github/workflows/bump_up_project_version.sh
+        env:
+          INCLUDE_PROJECT_SETTINGS: ${{ inputs.include_project_settings }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+      - name: Create a commit, and push it
+        run: .github/actions/shared/.github/workflows/bump_up_project_version_commit_and_push.sh
+        env:
+          BRANCH_NAME: ${{ steps.get_branch_name.outputs.BRANCH_NAME }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        shell: bash
+      - name: Create a pull request
+        if: ${{ inputs.create_pull_request }}
+        run: |
+          gh pr create \
+            --draft \
+            --title "$VERSION_WITH_V をリリースする" \
+            --body ""
+        env:
+          GITHUB_TOKEN: ${{ secrets.pat_create_pull_request }}
+          VERSION_WITH_V: ${{ steps.get_version.outputs.VERSION_WITH_V }}
+        shell: bash

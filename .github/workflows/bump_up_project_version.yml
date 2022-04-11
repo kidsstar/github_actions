@@ -1,0 +1,44 @@
+name: 'プロジェクトバージョンの更新'
+on:
+  workflow_call:
+    inputs:
+      branch_name:
+        required: true
+        type: string
+      include_project_settings:
+        default: true
+        required: false
+        type: boolean
+jobs:
+  bump_up_project_version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup git
+        run: |
+          git config --global user.name "system@kidsstar.co.jp"
+          git config --global user.email "kidsstar-system@users.noreply.github.com"
+      - uses: actions/checkout@v2 # 作業元のレポジトリを取得する
+      - uses: actions/checkout@v2
+        with:
+          repository: kidsstar/github_actions
+          ref: main
+          path: .github/actions/shared/
+      - name: Get version
+        run: .github/actions/shared/.github/workflows/get_version.sh
+        env:
+          BASE: ${{ inputs.branch_name }}
+        id: get_version
+        shell: bash
+      - name: Bump up project version
+        run: .github/actions/shared/.github/workflows/bump_up_project_version.sh
+        env:
+          INCLUDE_PROJECT_SETTINGS: ${{ inputs.include_project_settings }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        id: bump_up_project_version
+        shell: bash
+      - name: Create a commit, and push it
+        run: .github/actions/shared/.github/workflows/bump_up_project_version_commit_and_push.sh
+        env:
+          BRANCH_NAME: ${{ inputs.branch_name }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        shell: bash
