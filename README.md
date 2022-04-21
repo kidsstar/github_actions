@@ -4,7 +4,12 @@ KidsStar 内で Reusable Workflow を使って共有している GitHub Actions
 
 ## bump_up_project_version.yml
 
-* バージョン用のブランチを作成すると `Assets/package.json` / `package.json` / `ProjectSettings/ProjectSettings.asset` 内のバージョン情報をそのバージョンに置き換える Workflow です
+* バージョン用のブランチを作成すると以下のファイル内のバージョン情報をそのバージョンに置き換える Workflow です
+  * `Assets/package.json`
+  * `Assets/Booth/Settings/PavilionSetting.asset`
+  * `Assets/Settings/PavilionSetting.asset`
+  * `package.json`
+  * `ProjectSettings/ProjectSettings.asset`
 
 ## create_version_branch.yml
 
