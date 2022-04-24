@@ -1,0 +1,49 @@
+name: アセットバージョンの更新
+on:
+  workflow_call:
+    inputs:
+      addressables:
+        default: true
+        required: false
+        type: boolean
+      asset_bundle:
+        default: true
+        required: false
+        type: boolean
+    secrets:
+      pat_create_pull_request:
+        required: true
+jobs:
+  bump_up_project_version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup git
+        run: |
+          git config --global user.name "system@kidsstar.co.jp"
+          git config --global user.email "kidsstar-system@users.noreply.github.com"
+      - uses: actions/checkout@v3 # 作業元のレポジトリを取得する
+      - uses: actions/checkout@v3
+        with:
+          repository: kidsstar/github_actions
+          ref: main
+          path: .github/actions/shared/
+      - name: Bump up asset version
+        run: .github/actions/shared/.github/workflows/bump_up_asset_version.sh
+        env:
+          TARGET_ADDRESSABLES: ${{ inputs.addressables }}
+          TARGET_ASSET_BUNDLE: ${{ inputs.addressables }}
+        id: bump_up_asset_version
+        shell: bash
+      - name: Create a commit, and push it
+        run: .github/actions/shared/.github/workflows/bump_up_asset_version_commit_and_push.sh
+        id: create_commit
+        shell: bash
+      - name: Create a pull request
+        if: ${{ steps.create_commit.outputs.IS_COMMIT == '1' }}
+        run: |
+          gh pr create \
+            --title "Asset バージョンの更新" \
+            --body-file message
+        env:
+          GITHUB_TOKEN: ${{ secrets.pat_create_pull_request }}
+        shell: bash
