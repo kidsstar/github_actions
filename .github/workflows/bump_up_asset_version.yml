@@ -42,6 +42,7 @@ jobs:
         if: ${{ steps.create_commit.outputs.IS_COMMIT == '1' }}
         run: |
           gh pr create \
+            --assignee ${{ github.actor }} \
             --base ${{ github.ref_name }} \
             --title "Asset バージョンの更新" \
             --body-file message
