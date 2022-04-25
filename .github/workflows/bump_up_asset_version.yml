@@ -42,10 +42,11 @@ jobs:
         if: ${{ steps.create_commit.outputs.IS_COMMIT == '1' }}
         run: |
           gh pr create \
-            --assignee ${{ github.actor }} \
+            --assignee kidsstar-system \
             --base ${{ github.ref_name }} \
-            --title "Asset バージョンの更新" \
-            --body-file message
+            --body-file message \
+            --reviewer ${{ github.actor }} \
+            --title "Asset バージョンの更新"
         env:
           GITHUB_TOKEN: ${{ secrets.pat_create_pull_request }}
         shell: bash
