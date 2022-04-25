@@ -5,6 +5,7 @@ set -eux
 . .github/actions/shared/.github/workflows/shared.sh
 
 git_add "Assets/AddressableAssetsData/AddressableAssetSettings.asset"
+git_add "Assets/Booth/Settings/PavilionSetting.asset"
 git_add "Assets/Settings/PavilionSetting.asset"
 git_add "Assets/Resources/Entities/ProjectContextEntity.asset"
 

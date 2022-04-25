@@ -16,8 +16,8 @@ update_addressables() {
     echo -e "* \`$file_name\`: $current_version => $next_version" >> message
   fi
 
-  if [ -f "Assets/Settings/PavilionSetting.asset" ]; then
-    file_name="Assets/Settings/PavilionSetting.asset"
+  if [ -f "Assets/Booth/Settings/PavilionSetting.asset" ]; then
+    file_name="Assets/Booth/Settings/PavilionSetting.asset"
     current_version=$(< $file_name grep "addressablesCatalogVersion" | awk '{print $2}')
     next_version=$((current_version + 1))
     sed -i "s/addressablesCatalogVersion: $current_version/addressablesCatalogVersion: $next_version/" "$file_name"
@@ -25,8 +25,8 @@ update_addressables() {
     echo -e "* \`$file_name\`: $current_version => $next_version" >> message
   fi
 
-  if [ -f "Assets/Booth/Settings/PavilionSetting.asset" ]; then
-    file_name="Assets/Booth/Settings/PavilionSetting.asset"
+  if [ -f "Assets/Settings/PavilionSetting.asset" ]; then
+    file_name="Assets/Settings/PavilionSetting.asset"
     current_version=$(< $file_name grep "addressablesCatalogVersion" | awk '{print $2}')
     next_version=$((current_version + 1))
     sed -i "s/addressablesCatalogVersion: $current_version/addressablesCatalogVersion: $next_version/" "$file_name"
