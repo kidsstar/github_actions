@@ -10,7 +10,7 @@ update_addressables() {
   if [ -f "Assets/AddressableAssetsData/AddressableAssetSettings.asset" ]; then
     file_name="Assets/AddressableAssetsData/AddressableAssetSettings.asset"
     current_version=$(< $file_name grep "m_overridePlayerVersion" | awk '{print $2}')
-    next_version=$(printf "%0${#current_version}d" $((current_version + 1)))
+    next_version=$(printf "%0${#current_version}d" $((10#current_version + 1)))
     sed -i "s/m_overridePlayerVersion: $current_version/m_overridePlayerVersion: $next_version/" "$file_name"
 
     echo -e "* \`$file_name\`: $current_version => $next_version" >> message
