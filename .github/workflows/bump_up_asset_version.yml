@@ -31,7 +31,7 @@ jobs:
         run: .github/actions/shared/.github/workflows/bump_up_asset_version.sh
         env:
           TARGET_ADDRESSABLES: ${{ inputs.addressables }}
-          TARGET_ASSET_BUNDLE: ${{ inputs.addressables }}
+          TARGET_ASSET_BUNDLE: ${{ inputs.asset_bundle }}
         id: bump_up_asset_version
         shell: bash
       - name: Create a commit, and push it
