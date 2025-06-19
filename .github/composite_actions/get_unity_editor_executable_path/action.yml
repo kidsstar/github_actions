@@ -1,0 +1,23 @@
+name: 'Get Unity Editor Executable Path'
+description: Unityプロジェクトで使用しているUnityバージョンを特定し、Unityの実行パスを取得します。
+inputs:
+  unity_project_folder:
+    description: "Unityのプロジェクトフォルダ"
+    required: true
+outputs:
+  unity_editor_path:
+    description: "Untiyエディタの実行パス"
+    value: ${{ steps.cs.outputs.unity_editor_path }}
+runs:
+  using: "composite"
+  steps:
+    - name: Run Program.cs
+      id: cs
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "$GITHUB_ACTION_PATH"
+        editorpath=$(dotnet run Program.cs -- \
+          "${{ inputs.unity_project_folder }}" \
+        )
+        echo "unity_editor_path=$editorpath" >> $GITHUB_OUTPUT

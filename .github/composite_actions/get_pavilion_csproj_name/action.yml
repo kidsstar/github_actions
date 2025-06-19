@@ -1,0 +1,27 @@
+name: 'Get Pavilion C# Project File Name'
+description: Unityプロジェクト内のパビリオンC#プロジェクトファイル（Pretendland.Xxx.csproj）の名称を取得する
+inputs:
+  unity_project_folder:
+    description: "Unityのプロジェクトフォルダ"
+    required: true
+  github_repository:
+    description: "Actionsを起動したリポジトリ名"
+    required: true
+outputs:
+  pavilion_project_filename:
+    description: "プロジェクトファイル名"
+    value: ${{ steps.cs.outputs.pavilion_project_filename }}
+runs:
+  using: "composite"
+  steps:
+    - name: Run Program.cs
+      id: cs
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "$GITHUB_ACTION_PATH"
+        filename=$(dotnet run Program.cs -- \
+          "${{ inputs.unity_project_folder }}" \
+          "${{ inputs.github_repository }}" \
+        )
+        echo "pavilion_project_filename=$filename" >> $GITHUB_OUTPUT

@@ -1,0 +1,162 @@
+name: "Apply Code Style Workflow"
+on:
+  workflow_call:
+    secrets:
+      pat_read_all_repositories:
+        required: true
+    inputs:
+      clean:
+        required: false
+        type: boolean
+        default: false
+jobs:
+  apply_code_style:
+    name: "コードスタイルの適用(Reusable Workflow)"
+    runs-on:
+      - self-hosted
+      - apply-code-style
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # ジョブ毎にキャッシュ
+      - name: Create Workspace
+        uses: DeNA/setup-job-workspace-action@v3
+      # 対象リポジトリをチェックアウト
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0 # PR 用に履歴を保持
+          clean: ${{ inputs.clean }}
+          token: ${{ secrets.pat_read_all_repositories }}
+      # チェックアウト時にgit cleanしてない場合もgit reset --hardは行う
+      - name: Git reset
+        run: |
+          git reset --hard
+      # 最新の .editorconfig をテンプレートリポジトリから取得
+      - name: Import .editorconfig from template repo
+        uses: actions/checkout@v4
+        with:
+          repository: kidsstar/editorconfig_pretendland
+          ref: main
+          path: editorconfig_src
+          token: ${{ secrets.pat_read_all_repositories }}
+      - name: Replace .editorconfig
+        run: |
+          cp editorconfig_src/.editorconfig ./.editorconfig
+      # プロジェクトで利用しているバージョンのUnityエディタのパスを取得
+      - name: Get Unity Editor Executable Path
+        id: get_unity_editor_path
+        uses: kidsstar/github_actions/.github/composite_actions/get_unity_editor_executable_path@feature/format
+        with:
+          unity_project_folder: $GITHUB_WORKSPACE
+      - name: echo Unity Editor Executable Path
+        run: |
+          echo "Unity Editor Executable Path: ${{ steps.get_unity_editor_path.outputs.unity_editor_path }}"
+      # Unity CLI で .sln / .csproj を生成 (UnityEditor.SyncVS.SyncSolution)
+      - name: Generate solution & project files via Unity
+        run: |
+          ${{ steps.get_unity_editor_path.outputs.unity_editor_path }} \
+            -batchmode \
+            -quit \
+            -logFile - \
+            -projectPath . \
+            -executeMethod UnityEditor.SyncVS.SyncSolution
+      # パビリオンのC#プロジェクトファイル名を取得
+      - name: Get pavilion project filename
+        id: get_pavilion_csproj
+        uses: kidsstar/github_actions/.github/composite_actions/get_pavilion_csproj_name@feature/format
+        with:
+          unity_project_folder: $GITHUB_WORKSPACE
+          github_repository: $GITHUB_REPOSITORY
+      - name: echo pavilion project filename
+        run: |
+          echo "Pavilion Project File: ${{ steps.get_pavilion_csproj.outputs.pavilion_project_filename }}"
+      # dotnet format を実行
+      - name: Run dotnet format
+        run: |
+          dotnet format ${{ steps.get_pavilion_csproj.outputs.pavilion_project_filename }} --verbosity diagnostic
+      # 差分があればコミット & PR 作成
+      - name: Create pull request if changes exist
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: '🤖 🎨 Apply Code Style'
+          title: '🤖 🎨 [${{ github.ref_name }}] コードスタイルの自動適用'
+          body: |
+            ## 📋 概要
+            このPRは、`dotnet format` を使用してC#コードのフォーマットを自動修正したものです。
+            
+            ## 🎯 対象ブランチ
+            - **ベースブランチ**: `${{ github.ref_name }}`
+            
+            ## 📝 変更内容
+            
+            ### 1. .editorconfig の更新
+            - テンプレートリポジトリ（`kidsstar/editorconfig_pretendland`）から最新の `.editorconfig` を取得し更新
+            - プロジェクト全体で統一されたコーディング規約を適用
+            
+            ### 2. コードフォーマットの適用
+            以下のルールに基づいてコードスタイルを統一しました：
+            - インデントの統一
+            - 不要な空白の削除
+            - 括弧の位置の調整
+            - using文の整理
+            - その他、.editorconfigに定義されたルールの適用
+            
+            ## ✅ 確認事項
+            - [ ] 変更内容が意図したものであることを確認
+            - [ ] ビルドが正常に通ることを確認
+            - [ ] 機能的な変更が含まれていないことを確認
+            
+            ## 🤖 自動生成
+            このPRは GitHub Actions により自動生成されました。
+            問題がなければそのままマージしてください。
+          branch: actions/apply_code_style/${{ github.ref_name }}
+          base: ${{ github.ref_name }}
+          delete-branch: true
+          draft: false
+          add-paths: |
+            .editorconfig
+            **/*.cs            
+      # 作成された PR 情報を出力（差分なしならスキップ）
+      - name: PR info
+        if: ${{ steps.cpr.outputs.pull-request-number != '' && steps.cpr.outputs.pull-request-number != '0' }}
+        run: |
+          echo "Created PR #${{ steps.cpr.outputs.pull-request-number }} -> ${{ steps.cpr.outputs.pull-request-url }}"
+      
+      # 実行サマリーを生成
+      - name: Generate job summary
+        if: always()
+        run: |
+          echo "## 🎨 コードスタイル適用ワークフロー実行結果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 実行結果" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.cpr.outputs.pull-request-number }}" != "" && "${{ steps.cpr.outputs.pull-request-number }}" != "0" ]]; then
+            echo "✅ **コードスタイルの修正が必要でした**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **作成されたPR**: [#${{ steps.cpr.outputs.pull-request-number }}](${{ steps.cpr.outputs.pull-request-url }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **対象ブランチ**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **PRブランチ**: \`actions/apply_code_style/${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✨ **コードスタイルの修正は不要でした**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "すべてのコードがすでに適切なフォーマットになっています。" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 実行情報" >> $GITHUB_STEP_SUMMARY
+          echo "- **ブランチ**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **リポジトリ**: \`${{ github.repository }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **実行者**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Unity プロジェクト情報" >> $GITHUB_STEP_SUMMARY
+          echo "- **Unity エディタパス**: \`${{ steps.get_unity_editor_path.outputs.unity_editor_path }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **パビリオンプロジェクト**: \`${{ steps.get_pavilion_csproj.outputs.pavilion_project_filename }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "_このサマリーは自動生成されました_" >> $GITHUB_STEP_SUMMARY
