@@ -48,7 +48,7 @@ jobs:
       # プロジェクトで利用しているバージョンのUnityエディタのパスを取得
       - name: Get Unity Editor Executable Path
         id: get_unity_editor_path
-        uses: kidsstar/github_actions/.github/composite_actions/get_unity_editor_executable_path@feature/format
+        uses: kidsstar/github_actions/.github/composite_actions/get_unity_editor_executable_path@main
         with:
           unity_project_folder: $GITHUB_WORKSPACE
       - name: echo Unity Editor Executable Path
@@ -66,7 +66,7 @@ jobs:
       # パビリオンのC#プロジェクトファイル名を取得
       - name: Get pavilion project filename
         id: get_pavilion_csproj
-        uses: kidsstar/github_actions/.github/composite_actions/get_pavilion_csproj_name@feature/format
+        uses: kidsstar/github_actions/.github/composite_actions/get_pavilion_csproj_name@main
         with:
           unity_project_folder: $GITHUB_WORKSPACE
           github_repository: $GITHUB_REPOSITORY
