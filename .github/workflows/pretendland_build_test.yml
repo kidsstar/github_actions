@@ -1,0 +1,52 @@
+name: "[自動] ごっこランドのビルドテスト"
+
+# 手動実行トリガー（Actions > Run workflow から実行可能）
+on:
+  workflow_dispatch:
+    inputs:
+      # inputs の10個制限を回避するために JSON 形式の入力パラメータを利用する
+      parameters:
+        description: '入力パラメータの JSON'
+        required: true
+        type: string
+        default: '{
+        "builder_type":"player",
+        "repository":"kidsstar/pretendland",
+        "ref":"feature/support-buildpipeline",
+        "development":"true",
+        "environment":"FollowBuildSettings",
+        "upload":"false",
+        "clean":"false",
+        "unity_editor_version":"",
+        "build_for_ios":"true",
+        "build_for_android":"true",
+        "build_for_macos":"false",
+        "build_for_windows":"false",
+        "scripting_define_symbols":"LOGGING_ANALYTICS",
+        "connect_with_profiler":"false",
+        "allow_debugging":"false",
+        "apple_developer_team_id":"",
+        "android_app_bundle":"false",
+        "android_sdk_path":"",
+        "android_ndk_path":"",
+        "jdk_path":"",
+        "android_version_code":"0",
+        "build_memo":"",
+        "changelog":"",
+        "slack_channel_id":"C0J11NCET",
+        "slack_thread_ts":"",
+        "run_in_repository":"false"
+        }'
+
+# 定期実行したい場合は下記を有効化
+# on:
+#   schedule:
+#     - cron: '0 16 * * *' # JST 1時（UTC16時）
+
+jobs:
+  build_player:
+    name: Build Player
+    uses: kidsstar/BuildPipeline/.github/workflows/build_player.yml@main
+    with:
+      parameters: ${{ inputs.parameters }}
+    secrets: inherit
